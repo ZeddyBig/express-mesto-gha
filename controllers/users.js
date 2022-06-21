@@ -13,7 +13,15 @@ module.exports.getUsers = (req, res, next) => {
 
 module.exports.getUserById = (req, res, next) => {
   User.findOne({ _id: req.params.id })
-    .then((user) => res.status(200).send(user))
+    .then((user) => {
+      if (!user) {
+        res.status(NOT_FOUND).send({
+          message: 'Пользователь не существует',
+        });
+        return;
+      }
+      res.status(200).send(user);
+    })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({

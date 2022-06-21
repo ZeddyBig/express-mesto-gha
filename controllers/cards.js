@@ -28,7 +28,15 @@ module.exports.createCard = (req, res, next) => {
 
 module.exports.deleteCard = (req, res, next) => {
   Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => res.status(200).send(card))
+    .then((card) => {
+      if (!card) {
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не существует',
+        });
+        return;
+      }
+      res.status(200).send({ message: 'Карточка успешно удалена' });
+    })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({
@@ -50,7 +58,15 @@ module.exports.likeCard = (req, res, next) => {
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
     { new: true },
   )
-    .then((like) => res.status(200).send(like))
+    .then((card) => {
+      if (!card) {
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не существует',
+        });
+        return;
+      }
+      res.status(200).send({ message: 'Карточка успешно удалена' });
+    })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({
@@ -72,7 +88,15 @@ module.exports.dislikeCard = (req, res, next) => {
     { $pull: { likes: req.user._id } }, // убрать _id из массива
     { new: true },
   )
-    .then((dislike) => res.status(200).send(dislike))
+    .then((card) => {
+      if (!card) {
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не существует',
+        });
+        return;
+      }
+      res.status(200).send({ message: 'Карточка успешно удалена' });
+    })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         res.status(BAD_REQUEST).send({
