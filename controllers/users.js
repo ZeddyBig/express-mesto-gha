@@ -13,7 +13,6 @@ module.exports.getUsers = (req, res, next) => {
 
 module.exports.getUserById = (req, res, next) => {
   User.findOne({ _id: req.params.id })
-    .orFail(() => new Error('Not Found'))
     .then((user) => {
       if (!user) {
         res.status(NOT_FOUND).send({
@@ -64,7 +63,6 @@ module.exports.updateUser = (req, res, next) => {
       runValidators: true, // данные будут валидированы перед изменением
     },
   )
-    .orFail(() => new Error('Not Found'))
     .then((updatedUser) => res.status(200).send(updatedUser))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
@@ -92,7 +90,6 @@ module.exports.updateAvatar = (req, res, next) => {
       runValidators: true, // данные будут валидированы перед изменением
     },
   )
-    .orFail(() => new Error('Not Found'))
     .then((updateAvatar) => res.status(200).send(updateAvatar))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
