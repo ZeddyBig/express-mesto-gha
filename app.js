@@ -33,10 +33,6 @@ app.use((err, req, res, next) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).send({ message: 'Not Found' });
-});
-
 app.listen(PORT, () => {
   // Если всё работает, консоль покажет, какой порт приложение слушает
   console.log(`App listening on port ${PORT}`);

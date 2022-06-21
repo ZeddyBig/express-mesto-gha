@@ -1,8 +1,7 @@
 const Card = require('../models/card');
-const NotFoundError = require('../errors/NotFoundError');
-const ValidationError = require('../errors/ValidationError');
 
 const BAD_REQUEST = 400;
+const NOT_FOUND = 404;
 
 module.exports.getCards = (req, res, next) => {
   Card.find({})
@@ -36,7 +35,9 @@ module.exports.deleteCard = (req, res, next) => {
           message: 'Переданы некорректные данные в методы удаления карточки',
         });
       } else if (err.name === 'NotFoundError') {
-        next(err);
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не найдена',
+        });
       } else {
         next(err);
       }
@@ -49,18 +50,16 @@ module.exports.likeCard = (req, res, next) => {
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Запрашиваемая карточка не существует');
-      } else {
-        return res.status(200).send(card);
-      }
-    })
+    .then((like) => res.status(200).send(like))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new ValidationError('Переданы некорректные данные в методы лайка карточки'));
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        res.status(BAD_REQUEST).send({
+          message: 'Переданы некорректные данные для установки лайка',
+        });
       } else if (err.name === 'NotFoundError') {
-        next(err);
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не найдена',
+        });
       } else {
         next(err);
       }
@@ -73,18 +72,16 @@ module.exports.dislikeCard = (req, res, next) => {
     { $pull: { likes: req.user._id } }, // убрать _id из массива
     { new: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Запрашиваемая карточка не существует');
-      } else {
-        return res.status(200).send(card);
-      }
-    })
+    .then((dislike) => res.status(200).send(dislike))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new ValidationError('Переданы некорректные данные в методы лайка карточки'));
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        res.status(BAD_REQUEST).send({
+          message: 'Переданы некорректные данные для удаления лайка',
+        });
       } else if (err.name === 'NotFoundError') {
-        next(err);
+        res.status(NOT_FOUND).send({
+          message: 'Карточка не найдена',
+        });
       } else {
         next(err);
       }
