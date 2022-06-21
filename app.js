@@ -27,7 +27,7 @@ app.use('/cards', cardsRouter);
 
 app.use((err, req, res, next) => {
   if (err.statusCode === 500) {
-    res.status(err.statusCode).send({ 'Ошибка на сервере': err.message });
+    res.status(err.statusCode).send({ message: 'Ошибка по умолчанию' });
   } else {
     next(err);
   }
