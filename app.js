@@ -25,10 +25,12 @@ app.use((req, res, next) => {
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
 
-app.use((err, req, res) => {
-  const statusCode = err.statusCode || 500;
-  const message = statusCode === 500 ? 'На сервере произошла ошибка' : err.message;
-  res.status(statusCode).send({ message });
+app.use((err, req, res, next) => {
+  if (err.statusCode === 500) {
+    res.status(err.statusCode).send({ 'Ошибка на сервере': err.message });
+  } else {
+    next(err);
+  }
 });
 
 app.use((req, res) => {
