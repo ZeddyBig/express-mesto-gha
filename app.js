@@ -6,6 +6,7 @@ const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
 const auth = require('./middlewares/auth');
+const { signInValidation, signUpValidation } = require('./middlewares/joiValidation');
 
 const { PORT = 3000 } = process.env;
 
@@ -16,8 +17,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
 });
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', signInValidation, login);
+app.post('/signup', signUpValidation, createUser);
 
 app.use(auth);
 
