@@ -1,36 +1,47 @@
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const { generateToken } = require('../helpers/jwt');
+const ForbiddenError = require('../errors/ForbiddenError');
+const BadRequestError = require('../errors/BadRequestError');
+const NotFoundError = require('../errors/NotFoundError');
+const MongoDuplicateErrorCode = require('../errors/MongoDuplicateErrorCode');
 
-const BAD_REQUEST = 400;
-const NOT_FOUND = 404;
+const SALT_ROUNDS = 10;
+const MONGO_DUPLICATE_ERROR_CODE = 11000;
 
 module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch((err) => next(err));
+    .catch(next);
+};
+
+module.exports.getMe = (req, res, next) => {
+  User
+    .findById(req.user._id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь не найден');
+      }
+      res.status(200).send({ user });
+    })
+    .catch(next);
 };
 
 module.exports.getUserById = (req, res, next) => {
   User.findOne({ _id: req.params.id })
     .then((user) => {
       if (!user) {
-        res.status(NOT_FOUND).send({
-          message: 'Пользователь не существует',
-        });
-        return;
+        throw new NotFoundError('Пользователь не существует');
       }
       res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({
-          message: 'Переданы некорректные данные в методы поиска пользователя',
-        });
+        next(new BadRequestError('Переданы некорректные данные в методы поиска пользователя'));
       } else if (err.name === 'NotFoundError') {
-        res.status(NOT_FOUND).send({
-          message: 'Пользователь не найден',
-        });
+        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
@@ -38,16 +49,21 @@ module.exports.getUserById = (req, res, next) => {
 };
 
 module.exports.createUser = (req, res, next) => {
-  User.create(req.body)
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+
+  bcrypt.hash(password, SALT_ROUNDS)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
     .then((user) => res.status(201).send(user))
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({
-          message: 'Переданы некорректные данные в методы создания пользователя',
-        });
-      } else {
-        next(err);
+      if (err.code === MONGO_DUPLICATE_ERROR_CODE) {
+        next(new MongoDuplicateErrorCode('Емейл занят'));
       }
+
+      next(err);
     });
 };
 
@@ -66,13 +82,9 @@ module.exports.updateUser = (req, res, next) => {
     .then((updatedUser) => res.status(200).send(updatedUser))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({
-          message: 'Переданы некорректные данные в методы обновления профиля пользователя',
-        });
+        next(new BadRequestError('Переданы некорректные данные в методы обновления профиля пользователя'));
       } else if (err.name === 'NotFoundError') {
-        res.status(NOT_FOUND).send({
-          message: 'Пользователь не найден',
-        });
+        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
@@ -93,15 +105,39 @@ module.exports.updateAvatar = (req, res, next) => {
     .then((updateAvatar) => res.status(200).send(updateAvatar))
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
-        res.status(BAD_REQUEST).send({
-          message: 'Переданы некорректные данные в методы обновления аватара пользователя',
-        });
+        next(new BadRequestError('Переданы некорректные данные в методы обновления аватара пользователя'));
       } else if (err.name === 'NotFoundError') {
-        res.status(NOT_FOUND).send({
-          message: 'Пользователь не найден',
-        });
+        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
     });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    throw new BadRequestError('Не передан емейл или пароль');
+  }
+
+  User.findOne({ email }).select('+password')
+    .then((user) => {
+      if (!user) {
+        throw new ForbiddenError('Неправильный емейл или пароль');
+      }
+
+      return Promise.all([
+        user,
+        bcrypt.compare(password, user.password),
+      ]);
+    })
+    .then(([user, isPasswordCorrect]) => {
+      if (!isPasswordCorrect) {
+        throw new ForbiddenError('Неправильный емейл или пароль');
+      }
+      const token = generateToken({ _id: user._id });
+      res.status(200).send({ token });
+    })
+    .catch(next);
 };
