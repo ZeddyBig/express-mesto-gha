@@ -25,16 +25,16 @@ app.use(auth);
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
 
-app.use((req, res) => {
-  res.status(404).send({ message: 'Not Found' });
-});
-
 app.use((err, req, res, next) => {
   if (err.statusCode === 500) {
     res.status(err.statusCode).send({ message: 'Ошибка по умолчанию' });
   } else {
     next(err);
   }
+});
+
+app.use((req, res) => {
+  res.status(404).send({ message: 'Not Found' });
 });
 
 app.listen(PORT, () => {});
