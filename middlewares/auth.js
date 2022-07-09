@@ -2,11 +2,10 @@ const { checkToken } = require('../helpers/jwt');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 
 module.exports = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth) {
+  if (!req.cookies) {
     throw new UnauthorizedError('Вы не авторизованы');
   }
-  const token = auth.replace('Bearer ', '');
+  const token = req.cookies.jwt;
   let payload;
   try {
     payload = checkToken(token);
