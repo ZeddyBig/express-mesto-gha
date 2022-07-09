@@ -137,7 +137,9 @@ module.exports.login = (req, res, next) => {
         throw new ForbiddenError('Неправильный емейл или пароль');
       }
       const token = generateToken({ _id: user._id });
-      res.status(200).send({ token });
+      res
+        .cookie('jwt', token, { httpOnly: true, maxAge: 3600000 * 24 * 7, sameSite: true })
+        .send({ token });
     })
     .catch(next);
 };

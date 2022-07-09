@@ -17,13 +17,17 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
 });
 
-app.post('/signin', signInValidation, login);
 app.post('/signup', signUpValidation, createUser);
+app.post('/signin', signInValidation, login);
 
 app.use(auth);
 
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
+
+app.use((req, res) => {
+  res.status(404).send({ message: 'Not Found' });
+});
 
 app.use((err, req, res, next) => {
   if (err.statusCode === 500) {
@@ -31,10 +35,6 @@ app.use((err, req, res, next) => {
   } else {
     next(err);
   }
-});
-
-app.use((req, res) => {
-  res.status(404).send({ message: 'Not Found' });
 });
 
 app.listen(PORT, () => {});
