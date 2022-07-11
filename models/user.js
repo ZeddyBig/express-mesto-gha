@@ -1,7 +1,6 @@
-// eslint-disable-next-line no-multiple-empty-lines
+/* eslint-disable no-unused-vars */
 const mongoose = require('mongoose');
 const isEmail = require('validator/lib/isEmail');
-const isURL = require('validator/lib/isURL');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -19,7 +18,7 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String,
     validate: {
-      validator: (link) => isURL(link),
+      validator: (link) => /https?:\/\/w?w?w?.?\w+\W+(.\w+\W+)?(.\w+\W+)?(.\w+\W+)?(.\w+\W+)?(.\w+\W+)?/.test(link),
       message: 'Введена некорректная ссылка',
     },
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
@@ -38,6 +37,14 @@ const userSchema = new mongoose.Schema({
     requied: true,
     minlength: 4,
     select: false,
+  },
+});
+
+userSchema.set('toJSON', {
+  transform(doc, ret, options) {
+    // eslint-disable-next-line no-param-reassign
+    delete ret.password;
+    return ret;
   },
 });
 

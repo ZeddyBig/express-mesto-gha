@@ -1,10 +1,10 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const { generateToken } = require('../helpers/jwt');
-const ForbiddenError = require('../errors/ForbiddenError');
 const BadRequestError = require('../errors/BadRequestError');
 const NotFoundError = require('../errors/NotFoundError');
 const MongoDuplicateErrorCode = require('../errors/MongoDuplicateErrorCode');
+const UnauthorizedError = require('../errors/UnauthorizedError');
 
 const SALT_ROUNDS = 10;
 const MONGO_DUPLICATE_ERROR_CODE = 11000;
@@ -19,7 +19,7 @@ module.exports.getUsers = (req, res, next) => {
 
 module.exports.getMe = (req, res, next) => {
   User
-    .findById(req.user._id)
+    .findById(req.params.userId)
     .then((user) => {
       if (!user) {
         throw new NotFoundError('Пользователь не найден');
@@ -30,7 +30,7 @@ module.exports.getMe = (req, res, next) => {
 };
 
 module.exports.getUserById = (req, res, next) => {
-  User.findOne({ _id: req.params.id })
+  User.findOne({ _id: req.params.userId })
     .then((user) => {
       if (!user) {
         throw new NotFoundError('Пользователь не существует');
@@ -40,8 +40,6 @@ module.exports.getUserById = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные в методы поиска пользователя'));
-      } else if (err.name === 'NotFoundError') {
-        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
@@ -57,10 +55,11 @@ module.exports.createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.status(201).send(user))
+    .then((user) => res.status(201).send(user.toJSON()))
     .catch((err) => {
       if (err.code === MONGO_DUPLICATE_ERROR_CODE) {
         next(new MongoDuplicateErrorCode('Емейл занят'));
+        return;
       }
 
       next(err);
@@ -83,8 +82,6 @@ module.exports.updateUser = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные в методы обновления профиля пользователя'));
-      } else if (err.name === 'NotFoundError') {
-        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
@@ -106,8 +103,6 @@ module.exports.updateAvatar = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError' || err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные в методы обновления аватара пользователя'));
-      } else if (err.name === 'NotFoundError') {
-        next(new NotFoundError('Пользователь не найден'));
       } else {
         next(err);
       }
@@ -117,14 +112,10 @@ module.exports.updateAvatar = (req, res, next) => {
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    throw new BadRequestError('Не передан емейл или пароль');
-  }
-
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        throw new ForbiddenError('Неправильный емейл или пароль');
+        throw new UnauthorizedError('Неправильный емейл или пароль');
       }
 
       return Promise.all([
@@ -134,12 +125,12 @@ module.exports.login = (req, res, next) => {
     })
     .then(([user, isPasswordCorrect]) => {
       if (!isPasswordCorrect) {
-        throw new ForbiddenError('Неправильный емейл или пароль');
+        throw new UnauthorizedError('Неправильный емейл или пароль');
       }
       const token = generateToken({ _id: user._id });
       res
         .cookie('jwt', token, { httpOnly: true, maxAge: 3600000 * 24 * 7, sameSite: true })
-        .send({ token });
+        .send({ message: 'Авторизация успешна' });
     })
     .catch(next);
 };

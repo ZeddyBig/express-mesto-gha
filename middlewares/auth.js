@@ -10,7 +10,7 @@ module.exports = (req, res, next) => {
   try {
     payload = checkToken(token);
   } catch (err) {
-    next(new UnauthorizedError('Вы не авторизованы'));
+    throw new UnauthorizedError('Вы не авторизованы');
   }
 
   req.user = payload;

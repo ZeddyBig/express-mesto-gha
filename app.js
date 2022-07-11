@@ -1,13 +1,14 @@
-// eslint-disable-next-line no-multiple-empty-lines
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const { errors } = require('celebrate');
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 const { signInValidation, signUpValidation } = require('./middlewares/joiValidation');
+const NotFoundError = require('./errors/NotFoundError');
 
 const { PORT = 3000 } = process.env;
 
@@ -27,16 +28,23 @@ app.use(auth);
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
 
-app.use((err, req, res, next) => {
-  if (err.statusCode === 500) {
-    res.status(err.statusCode).send({ message: 'Ошибка по умолчанию' });
-  } else {
-    next(err);
-  }
+app.use((req, res, next) => {
+  next(new NotFoundError('Путь не найден'));
 });
 
-app.use((req, res) => {
-  res.status(404).send({ message: 'Not Found' });
+app.use(errors());
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const { statusCode = 500, message } = err;
+
+  res
+    .status(statusCode)
+    .send({
+      message: statusCode === 500
+        ? 'На сервере произошла ошибка'
+        : message,
+    });
 });
 
 app.listen(PORT, () => {});
