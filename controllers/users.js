@@ -55,7 +55,7 @@ module.exports.createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.status(201).send(user.toJSON()))
+    .then((user) => res.status(201).send(user))
     .catch((err) => {
       if (err.code === MONGO_DUPLICATE_ERROR_CODE) {
         next(new MongoDuplicateErrorCode('Емейл занят'));
