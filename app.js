@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
+const cors = require('cors');
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 const { createUser, login } = require('./controllers/users');
@@ -11,9 +12,21 @@ const { signInValidation, signUpValidation } = require('./middlewares/joiValidat
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const NotFoundError = require('./errors/NotFoundError');
 
-const { PORT = 3000 } = process.env;
+const options = {
+  origin: [
+    'http://localhost:3000',
+    'http://zeddybig.sprint15.nomoredomains.xyz',
+    'https://zeddybig.sprint15.nomoredomains.xyz',
+    'http://api.zeddybig.sprint15.nomoredomains.xyz',
+    'https://api.zeddybig.sprint15.nomoredomains.xyz',
+    'https://github.com/ZeddyBig',
+  ],
+  credentials: true, // эта опция позволяет устанавливать куки
+};
 
+const { PORT = 3001 } = process.env;
 const app = express();
+app.use('*', cors(options));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
